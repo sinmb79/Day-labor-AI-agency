@@ -1,73 +1,76 @@
 /**
- * Matching Engine for Day Labor AI Agency
- * Implements the scoring logic defined in the Whitepaper Section 6.2
+ * Matching Engine v2 — AI Agent Only
+ * Implements Whitepaper Section 6.2
+ * 
+ * Score = 0.35 × capability + 0.25 × performance + 0.15 × price + 0.15 × availability + 0.10 × reputation
  */
 
-function calculateScore(agent, job) {
-    // 1. Capability Score (35%)
-    // Simple tag matching: 
-    // If job.required_skills is a subset of agent.skills -> 1.0, else proportional or 0
-    const jobSkills = job.required_skills || [];
-    const agentSkills = agent.skills || [];
-
-    let capabilityScore = 0;
-    if (jobSkills.length === 0) {
-        capabilityScore = 1.0; // No specific skills required
-    } else {
-        const matches = jobSkills.filter(skill => agentSkills.includes(skill));
-        capabilityScore = matches.length / jobSkills.length;
-    }
-
-    // 2. Performance (25%)
-    // Normalized from agent.success_rate (0-1)
-    const performanceScore = agent.success_rate || 0.5; // Default for new agents
-
-    // 3. Price Score (15%)
-    // Lower is better. 
-    // If agent.price <= job.budget -> 1.0
-    // If agent.price > job.budget -> 0.0 (Hard constraint usually, but let's score it)
-    let priceScore = 0;
-    if (agent.price_per_task <= job.budget) {
-        // If significantly cheaper, bonus? For now just 1.0 if within budget
-        priceScore = 1.0 - (agent.price_per_task / job.budget) * 0.1; // Slight preference for cheaper?
-        if (priceScore > 1.0) priceScore = 1.0;
-    } else {
-        priceScore = 0.0;
-    }
-
-    // 4. Availability/Latency (15%) 
-    // Simulating availability check
-    const availabilityScore = agent.is_available ? 1.0 : 0.0;
-
-    // 5. Reputation (10%)
-    // 0-5 stars normalized to 0-1
-    const reputationScore = (agent.rating || 3.0) / 5.0;
-
-    // Total Score
-    const totalScore =
-        (0.35 * capabilityScore) +
-        (0.25 * performanceScore) +
-        (0.15 * priceScore) +
-        (0.15 * availabilityScore) +
-        (0.10 * reputationScore);
-
-    return totalScore;
+function cosineSimilarity(skillsA, skillsB) {
+    if (skillsA.length === 0 || skillsB.length === 0) return 0;
+    const setA = new Set(skillsA.map(s => s.toLowerCase()));
+    const setB = new Set(skillsB.map(s => s.toLowerCase()));
+    const intersection = [...setA].filter(s => setB.has(s));
+    return intersection.length / Math.sqrt(setA.size * setB.size);
 }
 
-function findBestMatch(job, agents) {
-    // filter agents that don't meet hard constraints
-    const candidates = agents.filter(a => a.is_available);
+function calculateScore(agent, project) {
+    // 1. Capability (35%) — soft cosine similarity
+    const capabilityScore = project.required_skills.length === 0
+        ? 1.0
+        : cosineSimilarity(agent.skills, project.required_skills);
 
-    // Score each
-    const scored = candidates.map(agent => ({
-        agent,
-        score: calculateScore(agent, job)
-    }));
+    // 2. Performance (25%) — historical success rate
+    const performanceScore = agent.success_rate || 0.5;
 
-    // Sort descending
-    scored.sort((a, b) => b.score - a.score);
+    // 3. Price (15%) — lower is better, must be within budget
+    let priceScore = 0;
+    if (agent.price_per_task <= project.budget_tBNB) {
+        priceScore = 1.0 - (agent.price_per_task / project.budget_tBNB) * 0.5;
+    }
 
+    // 4. Availability (15%)
+    const availabilityScore = agent.is_available ? 1.0 : 0.0;
+
+    // 5. Reputation (10%) — rating 0-5 normalized
+    const reputationScore = (agent.rating || 3.0) / 5.0;
+
+    const totalScore =
+        0.35 * capabilityScore +
+        0.25 * performanceScore +
+        0.15 * priceScore +
+        0.15 * availabilityScore +
+        0.10 * reputationScore;
+
+    return {
+        total: Math.round(totalScore * 1000) / 1000,
+        breakdown: {
+            capability: Math.round(capabilityScore * 100) / 100,
+            performance: Math.round(performanceScore * 100) / 100,
+            price: Math.round(priceScore * 100) / 100,
+            availability: Math.round(availabilityScore * 100) / 100,
+            reputation: Math.round(reputationScore * 100) / 100
+        }
+    };
+}
+
+function findBestMatches(project, agents, config) {
+    const candidates = agents.filter(a => {
+        if (!a.is_available) return false;
+        if (a.price_per_task > project.budget_tBNB) return false;
+        // Safety: new agents limited to low-value projects
+        if (project.budget_tBNB > 0.05 && a.jobs_completed < config.minJobsForHighValue && a.success_rate < config.minSuccessRateForHighValue) {
+            return false;
+        }
+        return true;
+    });
+
+    const scored = candidates.map(agent => {
+        const score = calculateScore(agent, project);
+        return { agent_id: agent.id, agent_name: agent.name, ...score };
+    });
+
+    scored.sort((a, b) => b.total - a.total);
     return scored;
 }
 
-module.exports = { calculateScore, findBestMatch };
+module.exports = { calculateScore, findBestMatches, cosineSimilarity };

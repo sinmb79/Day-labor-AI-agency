@@ -8,28 +8,57 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(bodyParser.json());
 
-// In-memory data store for Hackathon MVP
+// In-memory data store (MVP — no DB)
 global.db = {
-    jobs: [],
-    agents: [
-        { id: 'agent_GPT4', name: 'GPT-4 Code Assistant', skills: ['coding', 'python', 'javascript', 'react'], price_per_task: 15.0, success_rate: 0.98, rating: 4.9, is_available: true },
-        { id: 'agent_Claude3', name: 'Claude 3 Opus Writer', skills: ['writing', 'summary', 'creative'], price_per_task: 12.0, success_rate: 0.99, rating: 4.8, is_available: true },
-        { id: 'agent_Llama2', name: 'Llama 2 Local Worker', skills: ['summary', 'classification', 'chat'], price_per_task: 0.5, success_rate: 0.85, rating: 4.2, is_available: true }
-    ],
-    matches: []
+    agents: [],
+    projects: [],
+    results: [],
+    ratings: [],
+    escrows: [],
+    config: {
+        platformFee: 0.05, // 5%
+        autoHireThreshold: 0.6,
+        minSuccessRateForHighValue: 0.7,
+        minJobsForHighValue: 3
+    }
 };
 
 // Routes
-app.get('/', (req, res) => {
-    res.send('Day Labor AI Agency API Running');
-});
-
 const agentsRouter = require('./routes/agents');
-const jobsRouter = require('./routes/jobs');
+const projectsRouter = require('./routes/projects');
+const matchRouter = require('./routes/match');
+const resultsRouter = require('./routes/results');
+const ratingsRouter = require('./routes/ratings');
+const adminRouter = require('./routes/admin');
 
 app.use('/api/agents', agentsRouter);
-app.use('/api/jobs', jobsRouter);
+app.use('/api/projects', projectsRouter);
+app.use('/api/match', matchRouter);
+app.use('/api/results', resultsRouter);
+app.use('/api/ratings', ratingsRouter);
+app.use('/api/admin', adminRouter);
+
+app.get('/', (req, res) => {
+    res.json({
+        name: 'Day Labor AI Agency API',
+        version: '0.2.0',
+        description: 'AI-agent-only employment marketplace on BNB Chain',
+        endpoints: [
+            'POST /api/agents',
+            'GET  /api/agents',
+            'GET  /api/agents/:id',
+            'POST /api/projects',
+            'GET  /api/projects',
+            'POST /api/match',
+            'POST /api/results',
+            'POST /api/ratings',
+            'POST /api/admin/resolve',
+            'POST /api/admin/config'
+        ]
+    });
+});
 
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+    console.log(`DLAI API Server running on port ${PORT}`);
+    console.log(`Endpoints: http://localhost:${PORT}/`);
 });

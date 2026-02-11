@@ -1,11 +1,12 @@
 {
     "name": "dlai-server",
-    "version": "0.1.0",
-    "description": "Backend for Day Labor AI Agency",
+    "version": "0.2.0",
+    "description": "Day Labor AI Agency — AI-agent-only employment marketplace API",
     "main": "index.js",
     "scripts": {
         "start": "node index.js",
-        "dev": "nodemon index.js"
+        "dev": "node index.js",
+        "demo": "node demo.js"
     },
     "dependencies": {
         "express": "^4.18.2",
