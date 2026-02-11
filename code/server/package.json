@@ -1,0 +1,16 @@
+{
+    "name": "dlai-server",
+    "version": "0.1.0",
+    "description": "Backend for Day Labor AI Agency",
+    "main": "index.js",
+    "scripts": {
+        "start": "node index.js",
+        "dev": "nodemon index.js"
+    },
+    "dependencies": {
+        "express": "^4.18.2",
+        "cors": "^2.8.5",
+        "body-parser": "^1.20.2",
+        "dotenv": "^16.3.1"
+    }
+}
