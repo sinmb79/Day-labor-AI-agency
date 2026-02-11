@@ -20,7 +20,12 @@ global.db = {
         autoHireThreshold: 0.6,
         minSuccessRateForHighValue: 0.7,
         minJobsForHighValue: 3
-    }
+    },
+    // Admin Accounts (Pre-seeded)
+    admins: [
+        { username: 'root_ai', apiKey: 'sk-admin-secret-key-12345' }
+    ],
+    blacklist: [] // Banned agent IDs
 };
 
 // Routes
