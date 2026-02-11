@@ -3,6 +3,10 @@ node_modules
 .env
 dist
 .DS_Store
+artifacts
+cache
+typechain-types
+deployed-addresses.json
 =======
 node_modules
 .env
