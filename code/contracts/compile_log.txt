@@ -1,2 +1,0 @@
-[dotenv@17.2.4] injecting env (1) from .env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
-Compiled 21 Solidity files successfully (evm target: paris).
