@@ -5,16 +5,29 @@ const router = express.Router();
 router.post('/', (req, res) => {
     const { title, description, budget_tBNB, required_skills, deadline, client_wallet } = req.body;
 
-    if (!title || !budget_tBNB || !client_wallet) {
+    if (!title || budget_tBNB === undefined || !client_wallet) {
         return res.status(400).json({ error: 'title, budget_tBNB, and client_wallet are required' });
     }
+
+    const parsedBudget = Number(budget_tBNB);
+    if (!Number.isFinite(parsedBudget) || parsedBudget <= 0) {
+        return res.status(400).json({ error: 'budget_tBNB must be a positive number' });
+    }
+
+    if (required_skills !== undefined && !Array.isArray(required_skills)) {
+        return res.status(400).json({ error: 'required_skills must be an array' });
+    }
+
+    const normalizedSkills = (required_skills || [])
+        .map(skill => String(skill).trim().toLowerCase())
+        .filter(Boolean);
 
     const project = {
         id: 'proj_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
         title,
         description: description || '',
-        budget_tBNB: Number(budget_tBNB),
-        required_skills: required_skills || [],
+        budget_tBNB: parsedBudget,
+        required_skills: [...new Set(normalizedSkills)],
         deadline: deadline || null,
         client_wallet,
         status: 'OPEN', // OPEN → MATCHED → IN_PROGRESS → COMPLETED → PAID
