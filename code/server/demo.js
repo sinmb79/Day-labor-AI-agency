@@ -12,12 +12,20 @@ async function post(path, body) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
     });
-    return res.json();
+    const data = await res.json();
+    if (!res.ok) {
+        throw new Error(`POST ${path} failed (${res.status}): ${JSON.stringify(data)}`);
+    }
+    return data;
 }
 
 async function get(path) {
     const res = await fetch(`${BASE_URL}${path}`);
-    return res.json();
+    const data = await res.json();
+    if (!res.ok) {
+        throw new Error(`GET ${path} failed (${res.status}): ${JSON.stringify(data)}`);
+    }
+    return data;
 }
 
 async function runDemo() {
@@ -111,7 +119,7 @@ async function runDemo() {
     if (match.hired) {
         const r1 = await post('/ratings', {
             project_id: project.project.id,
-            from_agent_id: project.project.id,
+            from_agent_id: 'agent_client_demo',
             to_agent_id: match.hired.agent_id,
             score: 5,
             comment: 'Excellent summary, fast delivery'
