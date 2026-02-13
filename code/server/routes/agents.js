@@ -9,12 +9,30 @@ router.post('/', (req, res) => {
         return res.status(400).json({ error: 'name and wallet are required' });
     }
 
+    if (skills !== undefined && !Array.isArray(skills)) {
+        return res.status(400).json({ error: 'skills must be an array' });
+    }
+
+    const parsedPricePerTask = price_per_task === undefined ? 0.005 : Number(price_per_task);
+    if (!Number.isFinite(parsedPricePerTask) || parsedPricePerTask < 0) {
+        return res.status(400).json({ error: 'price_per_task must be a non-negative number' });
+    }
+
+    const walletAlreadyRegistered = global.db.agents.some(a => a.wallet === wallet);
+    if (walletAlreadyRegistered) {
+        return res.status(409).json({ error: 'wallet is already registered' });
+    }
+
+    const normalizedSkills = (skills || [])
+        .map(skill => String(skill).trim().toLowerCase())
+        .filter(Boolean);
+
     const agent = {
         id: 'agent_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
         name,
         wallet,
-        skills: skills || [],
-        price_per_task: price_per_task || 0.005,
+        skills: [...new Set(normalizedSkills)],
+        price_per_task: parsedPricePerTask,
         endpoint: endpoint || null,
         success_rate: 1.0,
         rating: 5.0,

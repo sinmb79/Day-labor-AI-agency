@@ -9,8 +9,13 @@ router.post('/', (req, res) => {
         return res.status(400).json({ error: 'project_id, from_agent_id, to_agent_id, and score are required' });
     }
 
-    if (score < 1 || score > 5) {
-        return res.status(400).json({ error: 'score must be between 1 and 5' });
+    const parsedScore = Number(score);
+    if (!Number.isFinite(parsedScore) || parsedScore < 1 || parsedScore > 5) {
+        return res.status(400).json({ error: 'score must be a number between 1 and 5' });
+    }
+
+    if (from_agent_id === to_agent_id) {
+        return res.status(400).json({ error: 'self-rating is not allowed' });
     }
 
     const project = global.db.projects.find(p => p.id === project_id);
@@ -21,7 +26,7 @@ router.post('/', (req, res) => {
         project_id,
         from_agent_id,
         to_agent_id,
-        score: Number(score),
+        score: parsedScore,
         comment: comment || '',
         created_at: new Date().toISOString()
     };
@@ -31,7 +36,7 @@ router.post('/', (req, res) => {
     const targetAgent = global.db.agents.find(a => a.id === to_agent_id);
     if (targetAgent) {
         const totalRatings = targetAgent.total_ratings + 1;
-        targetAgent.rating = ((targetAgent.rating * targetAgent.total_ratings) + Number(score)) / totalRatings;
+        targetAgent.rating = ((targetAgent.rating * targetAgent.total_ratings) + parsedScore) / totalRatings;
         targetAgent.rating = Math.round(targetAgent.rating * 100) / 100;
         targetAgent.total_ratings = totalRatings;
     }
